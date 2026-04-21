@@ -10,12 +10,12 @@ use rand::Rng;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
-    ratatui::run(|terminal| Map::new(10).run(terminal))
+    ratatui::run(|terminal| Map::new(100).run(terminal))
 }
 
 struct Map {
     name: String,
-    land: Vec<Vec<i32>>,
+    land: Vec<Vec<Land>>,
 }
 
 enum Land {
@@ -34,8 +34,14 @@ impl Map {
             let mut inner = Vec::with_capacity(size);
 
             for _ in 0..size {
-                let value = rng.gen_range(0..10);
-                inner.push(value);
+                let value = rng.gen_range(0..4);
+                inner.push(match value {
+                    0 => Land::Sand,
+                    1 => Land::Dirt,
+                    2 => Land::Forest,
+                    3 => Land::Water,
+                    _ => Land::Dirt,
+                });
             }
             outer.push(inner);
         }
@@ -75,17 +81,32 @@ impl Map {
 
         (frame).render_widget(instructions, instructions_area);
 
-        let mut paragraph = String::new();
+        let mut para = Vec::new();
+
         for row in &self.land {
-            let mut line = String::new();
-            for col in row {
-                line.push_str(col.to_string().as_str());
-            }
-            paragraph.push_str(&line);
-            paragraph.push('\n');
+
+
+            let spans: Vec<Span> = row
+                .iter()
+                .map(|c| {
+                    let style = match c {
+                        Land::Sand => Style::default().fg(Color::Rgb(210, 180, 140)),
+                        Land::Dirt => Style::default().fg(Color::Rgb(150, 75, 0)),
+                        Land::Forest => Style::default().fg(Color::Green),
+                        Land::Water => Style::default().fg(Color::Blue),
+                        _ => Style::default(),
+                    };
+
+                    Span::styled("█", style)
+                })
+                .collect();
+
+            let line = Line::from(spans);
+
+            para.push(line);
         }
 
-        let map = Paragraph::new(paragraph)
+        let map = Paragraph::new(para)
             .block(Block::bordered()
                 .title("Map")
                 .padding(Padding::new(1,1,1,1)));
